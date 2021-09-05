@@ -1,7 +1,12 @@
 import { Component, OnInit } from '@angular/core';
 import {HttpClient} from "@angular/common/http";
-import {map, catchError} from "rxjs/operators";
-import { JsonPipe } from '@angular/common';
+import { ExternalLibraryService } from './util';
+import {order} from "src/app/components/order";
+
+
+declare let Razorpay: any;
+
+
 @Component({
   selector: 'app-payment-page',
   templateUrl: './payment-page.component.html',
@@ -9,15 +14,18 @@ import { JsonPipe } from '@angular/common';
 })
 export class PaymentPageComponent implements OnInit {
 
-  constructor(private http : HttpClient) { }
+  constructor(private http : HttpClient,private razorpayService: ExternalLibraryService) { }
 
   ngOnInit(): void {
+    this.razorpayService
+    .lazyLoadLibrary('https://checkout.razorpay.com/v1/checkout.js')
+    .subscribe();
   }
 
   paymentStart()
   {
     console.log("Payment Method");
-    let amount: Number = 148;
+    let amount: Number = 200;
     let obj = {
       amount: amount
     };
@@ -27,38 +35,26 @@ export class PaymentPageComponent implements OnInit {
     
 
     
-
-    // this.http.post(url+'createOrder', obj)
-    // .pipe(
-    //   map((data) => {
-    //     //You can perform some transformation here
-    //     console.log("Response");
-    //     console.log(data);
-    //    return data;
-    //  }),
-    //  catchError((err) => {
-    //    console.error(err);
-    //    throw err;
-    //      }
-    //    )
-    // )
-    this.http.post(url+'createOrder', obj).subscribe(response => {
+    this.http.post<order>(url+'createOrder', obj).subscribe(response => {
       //do something with response
       console.log("Response with subscribe");
       console.log(response);
+      console.log(response.id);
+
+      
+      
 
       var options = {
-        key: "YOUR_KEY_ID", 
-        amount: "50000", 
-        "currency": "INR",
-        "name": "Acme Corp",
-        "description": "Test Transaction",
-        "image": "https://example.com/your_logo",
-        "order_id": "order_9A33XWu170gUtm", 
-        "handler": function (orderResponse :any){
-        alert(orderResponse.razorpay_payment_id);
-        alert(orderResponse.razorpay_order_id);
-        alert(orderResponse.razorpay_signature)
+        key: response.key, 
+        amount: response.amount, 
+        currency: "INR",
+        name: "Acme Corp",
+        description: "Test Transaction",
+        image: "https://example.com/your_logo",
+        order_id: response.id, 
+        handler: function (orderResponse :any){
+        alert("PAYMENT SUCCESSFUL\n" + orderResponse.razorpay_payment_id + orderResponse.razorpay_order_id + orderResponse.razorpay_signature);
+        console.log("PAYMENT SUCCESSFULL");
         },
         "prefill": {
         "name": "Gaurav Kumar",
@@ -86,6 +82,19 @@ export class PaymentPageComponent implements OnInit {
 
 
 
+    let razorpay = new Razorpay(options)
+
+    //if payment fails
+    razorpay.on("payment.failed", function (failedResponse: any){
+      console.log(failedResponse);
+      alert("FAILED Payment");
+    })
+    razorpay.open();
+    //if payment fails
+    razorpay.on("payment.failed", function (failedResponse: any){
+      console.log(failedResponse);
+      alert("FAILED Payment");
+    })
 
 
      
