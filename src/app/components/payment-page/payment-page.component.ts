@@ -42,9 +42,11 @@ export class PaymentPageComponent implements OnInit {
       console.log(response.id);
 
       
-      
+    
+      let isSuccessfull : boolean = false;
+      let paymentCompleteRazorpayResponse: any;
 
-      var options = {
+      let options = {
         key: response.key, 
         amount: response.amount, 
         currency: "INR",
@@ -53,8 +55,15 @@ export class PaymentPageComponent implements OnInit {
         image: "https://example.com/your_logo",
         order_id: response.id, 
         handler: function (orderResponse :any){
-        alert("PAYMENT SUCCESSFUL\n" + orderResponse.razorpay_payment_id + orderResponse.razorpay_order_id + orderResponse.razorpay_signature);
-        console.log("PAYMENT SUCCESSFULL");
+          alert("PAYMENT SUCCESSFUL\n" + orderResponse.razorpay_payment_id + orderResponse.razorpay_order_id + orderResponse.razorpay_signature);
+          console.log("PAYMENT SUCCESSFULL");
+          console.log(orderResponse);
+      
+          //if payment is successful
+          isSuccessfull = true;
+          paymentCompleteRazorpayResponse = orderResponse;
+
+
         },
         "prefill": {
         "name": "Gaurav Kumar",
@@ -69,33 +78,39 @@ export class PaymentPageComponent implements OnInit {
       }
       };
 
-      // var rzp1 = new Razorpay(options);
-      // rzp1.on('payment.failed', function (confirmationResponse){
-      // alert(confirmationResponse.error.code);
-      // alert(confirmationResponse.error.description);
-      // alert(confirmationResponse.error.source);
-      // alert(confirmationResponse.error.step);
-      // alert(confirmationResponse.error.reason);
-      // alert(confirmationResponse.error.metadata.order_id);
-      // alert(confirmationResponse.error.metadata.payment_id);
-      // });
+      let razorpay = new Razorpay(options)
 
+      //if payment fails
+      razorpay.on("payment.failed", function (failedResponse: any){
+        console.log(failedResponse);
+        alert("FAILED Payment");
+      })
 
+      razorpay.open();
 
-    let razorpay = new Razorpay(options)
+      //if payment fails
+      razorpay.on("payment.failed", function (failedResponse: any){
+        console.log(failedResponse);
+        alert("FAILED Payment");
+      })
 
-    //if payment fails
-    razorpay.on("payment.failed", function (failedResponse: any){
-      console.log(failedResponse);
-      alert("FAILED Payment");
-    })
-    razorpay.open();
-    //if payment fails
-    razorpay.on("payment.failed", function (failedResponse: any){
-      console.log(failedResponse);
-      alert("FAILED Payment");
-    })
-
+      setTimeout(()=>{
+        if(isSuccessfull)
+        {
+          
+          this.http.post<any>(url+'paymentComplete', paymentCompleteRazorpayResponse).subscribe(response => {
+              console.log("data added successfully");
+              console.log(response);
+          },
+          error => {
+            console.log(error);
+          })
+        }
+        else
+        {
+          console.log("Payment failed");
+        }
+      }, 15000);
 
      
     }, err => {
@@ -103,9 +118,11 @@ export class PaymentPageComponent implements OnInit {
       console.log(err.message);
     }, () => {
       console.log('completed');
+
     });
 
   
+    
   }
 
 
